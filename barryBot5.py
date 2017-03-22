@@ -166,8 +166,9 @@ if __name__=='__main__':
 					elif data[:3].upper() == "MSG":	#Keeping MSG for debugging
 						w=data[4:].split(' ',1)
 						print "Msg on server port :",data
-						msg = w[1].replace("BarryBot5",w[0])
-						msg = w[1].replace("Barry",w[0])
+                                                msg = \
+                                                re.sub("[Bb]arry([Bb]ot5?)?",
+                                                        w[0], w[1])
 						sock.send("MSG "+w[0]+" I AM A ROBOT : " + msg);#+w[1] );
 					#else drop the message
 			
