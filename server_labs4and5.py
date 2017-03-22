@@ -23,7 +23,7 @@ USE_CHAN_SIM=True#COMP28512 lab4 (False), lab5 (True)
 # Known bugs/issues
 # ================
 # - Can not fully cleanly kill the server. Threads still pending. When a thread terminates (via class.kill) connection stays open until client presses enter (or similar). Thread blocks on 'data = self.clientsock.recv(BUFF)'.
-# - Channel is not as transparrent as I'd like. Clients should be able to make multiple channel sockets to simulate direct connections. Not implemented.
+# - Channel is not as transparent as I'd like. Clients should be able to make multiple channel sockets to simulate direct connections. Not implemented.
 # - UDP not fully implemented/tested
 # - No bursty errors
 #
@@ -468,7 +468,7 @@ class ClientThread(threading.Thread):
 		inviteDB[self.username] = []
 		whoDB[self.username] = {'socket':self.clientsock,'simsock':self.simsock,'ip':self.addr[0],'port':self.addr[1]}
 				
-		
+	        print "User %s has simsock %s"%(data, self.simsock)	
 		return
 
 	
@@ -592,6 +592,7 @@ class ClientThread(threading.Thread):
 				if msgwho == "BarryBot5":
 					mangledMsg = self.username+" "+mangledMsg
 
+                                print "Message is going to %s"%msgwho
 				whoDB[msgwho]['simsock'].send(mangledMsg);
 				self.out("MSG2("+str(typeid)+") "+msgwho+" "+mangledMsg)
 			else: 
@@ -670,7 +671,6 @@ if __name__=='__main__':
     #Listen for new client connections
     try: 
         while 1:
-            ''' Do this later -- fancy handling for both labs (no flags needed)'''
             #Listen to all sockets
             ready_socks,_,_ = select.select(socklst, [], [])
             for sock in ready_socks:
@@ -703,12 +703,23 @@ if __name__=='__main__':
 				
                                 #print k
                                 print 'Channel Simulator connected at address', addr
+                        '''
+                        Assign oldest simsock to the most recent connection.
+                        This should ensure that when BarryBot connects, its
+                        connection is always associated with its simsock, even
+                        if the user currently has another connection open from
+                        the same ip waiting on a simsock.
+                        '''
                         connections_without_channel.sort(reverse=True)
                         assert len(connections_without_channel) >= len(simDB), "Something stupid has happened"
 			len_simDB = len(simDB)
                         for i in range(len_simDB):
                            index=connections_without_channel[i]
 			   threadsDB[index].simsock= simDB[i]
+                           #Now we need update whoDB 
+                           for k in whoDB.keys():
+                               if whoDB[k]['socket'] == threadsDB[index].clientsock:
+                                   whoDB[k]['simsock'] = simDB[i]
 			connections_without_channel = connections_without_channel[len_simDB:]
 			simDB = []                            
  

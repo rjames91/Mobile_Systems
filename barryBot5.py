@@ -45,10 +45,8 @@ KEY_LEN=len(REPEAT_MSG)
 
 SIG_PR=0.2	#This is the probability that the bot adds the signature instead of the fragment of text
 
-
+TEXT_PIECE = '''The University of Manchester is a large research university situated in the city of Manchester, England. Manchester University - as it is commonly known - is a public university formed in 2004 by the merger of the University of Manchester Institute of Science and Technology (est. 1824) and the Victoria University of Manchester (est. 1851). Manchester is a member of the worldwide Universities Research Association group, the Russell Group of British research universities and the N8 Group. The University of Manchester has been a "red brick university" since 1880 when Victoria University gained its royal charter.'''
 #First paragraph from wikipedia about UoM - http://en.wikipedia.org/wiki/University_of_Manchester
-TEXT_PIECE='''The University of Manchester is a large research university situated in the city of Manchester, England. Manchester University - as it is commonly known - is a public university formed in 2004 by the merger of the University of Manchester Institute of Science and Technology (est. 1824) and the Victoria University of Manchester (est. 1851). Manchester is a member of the worldwide Universities Research Association group, the Russell Group of British research universities and the N8 Group. The University of Manchester has been a "red brick university" since 1880 when Victoria University gained its royal charter.'''
-
 def genRandStr (size):
 	gen=""
 	for i in xrange(size):		
@@ -168,8 +166,9 @@ if __name__=='__main__':
 					elif data[:3].upper() == "MSG":	#Keeping MSG for debugging
 						w=data[4:].split(' ',1)
 						print "Msg on server port :",data
-						msg = w[1].replace("BarryBot5",w[0])
-						msg = w[1].replace("Barry",w[0])
+                                                msg = \
+                                                re.sub("[Bb]arry([Bb]ot5?)?",
+                                                        w[0], w[1])
 						sock.send("MSG "+w[0]+" I AM A ROBOT : " + msg);#+w[1] );
 					#else drop the message
 			
