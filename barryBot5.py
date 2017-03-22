@@ -12,6 +12,7 @@ import traceback
 import sys
 import random
 import binascii
+import config
 
 #####
 # Updates
@@ -45,10 +46,8 @@ KEY_LEN=len(REPEAT_MSG)
 
 SIG_PR=0.2	#This is the probability that the bot adds the signature instead of the fragment of text
 
-
+TEXT_PIECE = config.TEXT_PIECE
 #First paragraph from wikipedia about UoM - http://en.wikipedia.org/wiki/University_of_Manchester
-TEXT_PIECE='''The University of Manchester is a large research university situated in the city of Manchester, England. Manchester University - as it is commonly known - is a public university formed in 2004 by the merger of the University of Manchester Institute of Science and Technology (est. 1824) and the Victoria University of Manchester (est. 1851). Manchester is a member of the worldwide Universities Research Association group, the Russell Group of British research universities and the N8 Group. The University of Manchester has been a "red brick university" since 1880 when Victoria University gained its royal charter.'''
-
 def genRandStr (size):
 	gen=""
 	for i in xrange(size):		
