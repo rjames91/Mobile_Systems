@@ -40,6 +40,7 @@ SERVER_PORT = 9999 #Default if no port given as arg
 CHANNEL_PORT = 9998
 
 REPEAT_MSG="Sent by BarryBot, School of Computer Science, The University of Manchester"
+#This fixed key is only used if key isn't randomised in main function.
 KEY = 	   "1<AK8JNZBCHXUHCV1A?BYSE8PQW485M=XIK84MATON2NYYNU9KLWHBQO=PWPF<TE=L5SY601I1"
 KEY_LEN=len(REPEAT_MSG)
 

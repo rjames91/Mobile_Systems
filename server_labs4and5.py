@@ -720,6 +720,7 @@ if __name__=='__main__':
                            for k in whoDB.keys():
                                if whoDB[k]['socket'] == threadsDB[index].clientsock:
                                    whoDB[k]['simsock'] = simDB[i]
+                                   whoDB[k]['simsock'].send("Channel Associated with user %s"%k)
 			connections_without_channel = connections_without_channel[len_simDB:]
 			simDB = []                            
  
