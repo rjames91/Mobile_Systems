@@ -118,11 +118,6 @@ if __name__=='__main__':
 	svr.connect((HOST,SERVER_PORT))
 	socklst.append(svr)
 	
-	'''if LAB==5:
-		sim=socket(AF_INET, SOCK_STREAM)
-		sim.connect((HOST,CHANNEL_PORT))
-		socklst.append(sim)'''
-
 	KEY=genRandStr(KEY_LEN)	#This would be used if you wanted a random key every time you run barryBot
 								#else KEY is statically defined
 	#print "KEY is ",KEY
@@ -134,22 +129,16 @@ if __name__=='__main__':
 		svr.send("REGISTER BarryBot4")
 	elif LAB==5:
 		svr.send("REGISTER BarryBot5")
-
-		#setup socket (server will be lookng for 9998 connection following BarryBot5 registration.
-		sim=socket(AF_INET, SOCK_STREAM)
-		sim.connect((HOST,CHANNEL_PORT))
-		socklst.append(sim)
 	else:
 		print("Error: It looks like you did not set a valid value for LAB! Valid values are 4 or 5.");
 		errorset=True
 	
 	try:
 		while(not errorset):
-			ready_socks,_,_ = select.select(socklst, [], [])
+			ready_socks,_,_ = select.select([svr], [], [])
 			for sock in ready_socks:
 				#Grab the ip and port values of this socket (we do not know which one it is yet)
-				iip,pport = sock.getpeername()#
-				print iip,pport
+				#iip,pport = sock.getpeername()#
 				data = sock.recv(BUFF)
 				#If Socket closed
 				if not data: 
@@ -157,8 +146,10 @@ if __name__=='__main__':
 					print "Socket connection lost - Exiting BarryBot"
 					sys.exit()
 
-				if pport == SERVER_PORT:
+                                if True:
 					print "SERVER PORT :",data
+                                        fw = data.split(" ", 1)
+                                        fromwho = fw[0]
 
 					if data[:6].upper() == "INVITE":
 						print "Accepting invite :",data
@@ -170,18 +161,8 @@ if __name__=='__main__':
                                                 re.sub("[Bb]arry([Bb]ot5?)?",
                                                         w[0], w[1])
 						sock.send("MSG "+w[0]+" I AM A ROBOT : " + msg);#+w[1] );
-					#else drop the message
-			
-				elif pport == CHANNEL_PORT:
-					print "CHANNEL PORT :",data
-					
-					#Grab FROM
-					fw = data.split(' ',1)
-					fromwho = fw[0]
-					data = fw[1]
-					
-					#This is a special command that the bot responds to. 
-					if data[:7].upper() == "ENCRYPT":
+
+					elif data[:7].upper() == "ENCRYPT":
 						
 						if random.random() < SIG_PR:	# chance of outputing the signature
 							text = REPEAT_MSG
@@ -198,9 +179,14 @@ if __name__=='__main__':
 						asciibin = padLeftZeros(asciibin[2:],8)	#make sure bin is multiple of 8bits
 						print "ascii version is :",asciibin
 					
-						sock.send("0"+fromwho+" "+asciibin+"\n")
-					else:
-						sock.send("0"+fromwho+" "+data)
+						sock.send("0MSG "+fromwho+" "+asciibin+"\n")
+                                        elif data[0].isdigit():
+						sock.send(data[0] + "MSG "+fromwho+" "+data+"\n")
+                                        else:
+                                                print "data is:"
+					        print data	
+
+			
 				#end if pport
 			#end for all sock
 		#end while

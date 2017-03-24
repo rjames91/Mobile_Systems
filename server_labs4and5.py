@@ -17,7 +17,7 @@
 
 #Lab settings - TODO these should also be commandline args really
 USE_UDP=False       #COMP28512 (False), COMP61242 (True)
-USE_CHAN_SIM=True#COMP28512 lab4 (False), lab5 (True)
+USE_CHAN_SIM=False#COMP28512 lab4 (False), lab5 (True)
 
 ###
 # Known bugs/issues
@@ -110,7 +110,7 @@ class ClientThread(threading.Thread):
 		super(ClientThread, self).__init__()
 		
 		self.clientsock = clientsock
-		self.simsock = simsock
+                assert simsock is None, "Simsock is deprecated, should be None"
 		self.addr = addr
 		self.username = UNREG_UN	#Client has not registered a username on connection, see "REGISTER [username]" command
 	 
@@ -293,13 +293,9 @@ class ClientThread(threading.Thread):
 		
 		try:
 			while not self.killed:
-				#Simsock is only added IFF simulated channel is connected to. Add dynamically 
-				if self.simsock != None and not self.simsock in self.sockets:
-                    			self.sockets.append(self.simsock)		
-				        print 'simsock added to socklist', self.sockets
 
 				#checks client and posisbly channel connection associated with this thread
-				ready_socks,_,_ = select.select(self.sockets, [], [], 0)
+				ready_socks,_,_ = select.select(self.sockets, [], [])
 
 				#Deal with whichever socket is ready
 				
@@ -308,12 +304,9 @@ class ClientThread(threading.Thread):
 		           				
 						#Grab the ip and port values of this socket (we do not know which one it is yet)
 						iip,pport = sock.getsockname()
+
 					
-						if pport == CHANNEL_PORT:
-							print "Sim port"
-						elif pport == SERVER_PORT:
-							print "SVR port"	
-					
+                                                """
 						#Simulated channel (introduce errors)
 						if pport == CHANNEL_PORT:
 						
@@ -335,17 +328,17 @@ class ClientThread(threading.Thread):
 								data = "0"+data	
 						
 							#Grab username and the data sent
-							w=data.split(' ',1)
-							msgwho=w[0][1:] #Strip off channel type
 							print w
 							#w should be split into username(dst) and data
 							if len(w) != 2 :
 								self.err(SVR_CH_SYNTAX_ERR)
 							else:	
 								#Send message over channel simulator				
-								self.msg2(stype,msgwho, w[1])
+                                                        """
 							
 						#Directory/SIP/Proxy server
+                                                if False:
+                                                    pass
 						elif pport == SERVER_PORT:
 					
 							data = sock.recv(BUFF)
@@ -361,6 +354,7 @@ class ClientThread(threading.Thread):
 							self.out(">> " + repr(self.addr) + " : "+ repr(data))
 					
 							#Delegate to methods to handle the commands
+                                                        msg2_regex = re.compile("[0-5]MSG")
 							if data[:8].upper() == "REGISTER":
 								self.register(data[9:]);
 							elif data[:1].upper() == "R":		#Short command for REGISTER because I'm lazy
@@ -374,7 +368,7 @@ class ClientThread(threading.Thread):
 							elif data[:4].upper() == "DUMP":
 								self.dump();
 							elif data[:3].upper() == "MSG": #MSG command for lab4 + lab5 debug
-								w=data[4:].split(' ',1)
+                                                                w=data[4:].split(' ',1)
 								if len(w)==2:
 									self.msg(w[0],w[1]);
 								else:
@@ -387,7 +381,15 @@ class ClientThread(threading.Thread):
 								self.decline(data[8:]);
 							elif data[:3].upper() == "END":
 								self.end(data[4:]);
+                                                        elif msg2_regex.match(data[:4]):
+                                                                channel = data[0]
+                                                                w=data[5:].split(' ',1)
+								if len(w)==2:
+                                                                    self.msg2(data[0],w[0],w[1]);
+								else:
+                                                                    self.err("<msgto> <msgtext> required");
 							else:
+                                                                print data
 								self.out(SVR_CMD_ERR_DEBUG)
 								self.err(SVR_CMD_ERR)	
 						#end elifpport == SERVER_PORT
@@ -466,9 +468,8 @@ class ClientThread(threading.Thread):
 		self.out("Registering "+data);
 		self.username=data;
 		inviteDB[self.username] = []
-		whoDB[self.username] = {'socket':self.clientsock,'simsock':self.simsock,'ip':self.addr[0],'port':self.addr[1]}
+		whoDB[self.username] = {'socket':self.clientsock,'ip':self.addr[0],'port':self.addr[1]}
 				
-	        print "User %s has simsock %s"%(data, self.simsock)	
 		return
 
 	
@@ -593,7 +594,7 @@ class ClientThread(threading.Thread):
 					mangledMsg = self.username+" "+mangledMsg
 
                                 print "Message is going to %s"%msgwho
-				whoDB[msgwho]['simsock'].send(mangledMsg);
+				whoDB[msgwho]['socket'].send(mangledMsg);
 				self.out("MSG2("+str(typeid)+") "+msgwho+" "+mangledMsg)
 			else: 
 				#packet is dropped			
@@ -657,7 +658,7 @@ if __name__=='__main__':
     
     print 'waiting for connection... Server listening on ',HOST,":", SERVER_PORT
 
-    if USE_CHAN_SIM:
+    if False:
         #Set up channel simulator socket
         SIMADDR = (HOST, CHANNEL_PORT)			#IP address and port number	(note: does HOST='<broadcast>' work?)
         simsock = socket(AF_INET, sock_type)	#Set socket to be TCP or UDP
@@ -677,6 +678,7 @@ if __name__=='__main__':
                 #Grab the ip and port values of this socket (we do not know which one it is yet)
                 iip,pport = sock.getsockname()
                 
+                """
                 if pport == CHANNEL_PORT:
                     simsock, addr = sock.accept()
 		    #simsock.setblocking(0)
@@ -724,10 +726,12 @@ if __name__=='__main__':
 			simDB = []                            
  
 
-                    
+                """    
 		#thread is only initialised for a server port connection
 		#the channel connection is a property (simsock) of a server connection thread
 
+                if False:
+                    pass
 		elif pport == SERVER_PORT: # and not unconnected_count > 1:
 		    clientsock, addr = sock.accept()
 		    #clientsock.setblocking(0)
