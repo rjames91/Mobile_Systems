@@ -1,4 +1,3 @@
-####
 # Server for COMP28512 - MobileSystems and COMP61242 - Mobile Comunications labs.
 # Orginially written by Andrew Leeming 2014
 #
@@ -52,13 +51,23 @@ CH_BURSTY = 3
 CH_DROP1 = 4
 CH_DROP2 = 5
 CH_UDP = 6	#MSC only
+"""
+MODE1_BEP = 0.001
+MODE2_BEP = 0.01
+MODE3_MAX_BEP = 0.02  # BEP will vary over time between 0 & MAX
+MODE3_BURSTLEN = 20   # Length (number of bits) of each burst 
+MODE4_PLP = 0.05     # Packet-loss probability
+MODE5_PLP = 0.2	   # Packet-loss probability
+"""
+
 
 #Here are all the error/packet loss probabilities for each channel type
 CHANNEL_1_ERR = 0.001
 CHANNEL_2_ERR = 0.01
-CHANNEL_3_ERR = 0.005
+CHANNEL_3_ERR = 0.02
 CHANNEL_4_ERR = 0.05
 CHANNEL_5_ERR = 0.2
+MODE3_BURSTLEN = 20   # Length (number of bits) of each burst 
 
 #Server static messages
 SVR_NOREG = "Registration required to do this"
@@ -126,86 +135,67 @@ class ClientThread(threading.Thread):
 		returns a modified version of 'data' (depending on typeid)
 		"""
 		
-		newdata = ""
+		newdata = bytearray(data)
 		
 		#Seed random number generator so we do not get same error seq
 		random.seed(str(datetime.datetime.now()))
 	
 		#Benign (no errors)
+                if isinstance(typeid, str):
+                    typeid = int(typeid)
 		if typeid == CH_BENIGN:
-			newdata=data	#Do nothing to data
+                    pass
 		#Random error (low pr)
-		elif typeid == CH_BIT1:
-			bEP=CHANNEL_1_ERR
-			
+		elif typeid == CH_BIT1 or typeid == CH_BIT2:
+                        if typeid == CH_BIT1:
+                            bEP=CHANNEL_1_ERR
+                        else:
+                            bEP = CHANNEL_2_ERR
+                            
 			#Per char
 			for i in xrange(0,len(data)):
 				if random.random() < bEP:					
-					#Flips binary data or replaces char with '~' *messy hack*
-					if data[i]=="1":
-						newdata = newdata + "0"
-					elif data[i]=="0":
-						newdata = newdata + "1"
-					else:
-						newdata = newdata + '~'
-			
-				else:
-					newdata = newdata + data[i]
+                                    #Flips binary data or replaces char with '~' *messy hack*
+                                    if data[i]=="1":
+                                            newdata[i] = "0" 
+                                    elif data[i]=="0":
+                                            newdata[i] =  "1"  # appends 1
+                                    else:
+                                            pass  #No changes to any other chars
 				#end if random
 				
 			#end for char in data
 		#Random error (high pr)
-		elif typeid == CH_BIT2:
-			bEP=CHANNEL_2_ERR
-			
-			
-			#Per char
-			for i in xrange(0,len(data)):
-				if random.random() < bEP:
-					#Flips binary data or replaces char with '~' *messy hack*
-					if data[i]=="1":
-						newdata = newdata + "0"
-					elif data[i]=="0":
-						newdata = newdata + "1"
-					else:
-						newdata = newdata + '~'
-			
-				else:
-					newdata = newdata + data[i]
-				#end if random
+			#end if random
 		#end for char in data
 		#================================================================
 		# Mod by Barry for Bursty errors
 		#================================================================
 		#Bursty errors
 		elif typeid == CH_BURSTY:
-			bEP=CHANNEL_3_ERR * 10  
-			L = len(data)
-			if L < 20:
-				LB = L  # Length of burst is whole of packet because it is short
-				stB = 0
-				enB = L
-				bEP*=random.random()
-			else:
-				LB = round(L/10)
-				stB = random.randint(0, L-LB-1)
-				enB = stB + LB
-				#Per char
-				for i in xrange(0,len(data)):
-					if (random.random() < bEP) and (i >= stB) and (i < enB) :        # SYNTAX ???
-						#Flips binary data or replaces char with '~' *messy hack*
-						if data[i]=="1":
-							newdata = newdata + "0"
-						elif data[i]=="0":
-							newdata = newdata + "1"
-						else:
-							newdata = newdata + '~'
+                        bEP = CHANNEL_3_ERR*random.random()
+			# Set a value of bEP in range 0 to MODE3_MAX_BEP
+			Nburst = 0  # Initialise burstlength counter
+			for i in xrange(0,len(data)):
+				if random.random() < bEP:
+					if data[i]=="1":
+						newdata[i]="0"
+					elif data[i]=="0":
+						newdata[i]= "1"
 					else:
-						newdata = newdata + data[i]                
-					#end if random
-				#end for char in data
+						pass # Dont change other chars
+					# end if data[i]
+				#end if random
+				Nburst = Nburst + 1
+                                if Nburst == MODE3_BURSTLEN:
+					bEP = CHANNEL_3_ERR*random.random()
+					# Change bit-error probability for next burst
+					Nburst = 0  # Restart burst-len counter
+				# end of if Nburst		
+			#end of for i loop
+		# end of elif mode == 3
 
-		#Lost packets (low pr)
+	#Lost packets (low pr)
 		elif typeid == CH_DROP1:
 			pLP=CHANNEL_4_ERR
 			
@@ -230,10 +220,11 @@ class ClientThread(threading.Thread):
 		
 		#Error/ unknown channel type
 		else:
-			pass;
+                    print "unknown channel type"
 		
 		
 		#Return data with errors
+                newdata = str(newdata)
 		return newdata;	
 		
 	#End channel_simulator
@@ -381,6 +372,9 @@ class ClientThread(threading.Thread):
 								self.decline(data[8:]);
 							elif data[:3].upper() == "END":
 								self.end(data[4:]);
+                                                        elif data == "DEBUG":
+                                                                self.register("Danny")
+                                                                self.invite("BarryBot5")
                                                         elif msg2_regex.match(data[:4]):
                                                                 channel = data[0]
                                                                 w=data[5:].split(' ',1)
@@ -581,21 +575,27 @@ class ClientThread(threading.Thread):
 			return
 			
 		print ">>",self.username,"::",msgwho
+                print text
 		print connectionDB
 		#Check if user has a connection with msgwho
 		if set([self.username, msgwho]) in connectionDB:
 			#Run message via channel simulator
+                        print "Username is in connectiondb"
 			mangledMsg = self.channel_simulator(typeid,text)
+                        print "Mangled Message: %s"%mangledMsg
 			
 			#Go ahead and send message
 			if mangledMsg != "0"*20:    #Droped packet is a string of 20 zeros
 				#If talking to barrybot, give 'from' so it can respond
+                                print msgwho
 				if msgwho == "BarryBot5":
-					mangledMsg = self.username+" "+mangledMsg
+                                    print "This is running!"
+                                    mangledMsg = typeid + self.username+" "+mangledMsg
+                                    print mangledMsg
 
                                 print "Message is going to %s"%msgwho
 				whoDB[msgwho]['socket'].send(mangledMsg);
-				self.out("MSG2("+str(typeid)+") "+msgwho+" "+mangledMsg)
+				self.out("MSG2("+typeid+") "+msgwho+" "+mangledMsg)
 			else: 
 				#packet is dropped			
 				self.out("Dropping packet")
