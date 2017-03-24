@@ -121,7 +121,7 @@ class ClientThread(threading.Thread):
         self.clientsock = clientsock
         assert simsock is None, "Simsock is deprecated, should be None"
         self.addr = addr
-        self.username = UNREG_UN #Client has not registered a username on connection, see "REGISTER [username]" command
+        self.username = UNREG_UN        #Client has not registered a username on connection, see "REGISTER [username]" command
 
     def channel_simulator(self, typeid, data):
         """
@@ -217,13 +217,16 @@ class ClientThread(threading.Thread):
             #todo
             newdata = data
 
+
         #Error/ unknown channel type
         else:
             print "unknown channel type"
 
+
         #Return data with errors
         newdata = str(newdata)
         return newdata;
+
     #End channel_simulator
 
 
@@ -278,6 +281,7 @@ class ClientThread(threading.Thread):
         #List of sockets currently listening to. simsock is appeneded later on if it is needed
         self.sockets = [self.clientsock]
 
+
         try:
             while not self.killed:
 
@@ -292,6 +296,37 @@ class ClientThread(threading.Thread):
                         #Grab the ip and port values of this socket (we do not know which one it is yet)
                         iip,pport = sock.getsockname()
 
+
+                        """
+                        #Simulated channel (introduce errors)
+                        if pport == CHANNEL_PORT:
+
+                                data = sock.recv(BUFF)
+
+                                #Socket closed
+                                if not data:
+                                        sock.close()
+                                        socklst.remove(sock)
+                                        continue
+
+                                print "CH data::",data
+                                #Grab the channel type from data
+                                try:
+                                        stype = int(data[:1])
+                                except:
+                                        self.err(SVR_INVALID_CH)
+                                        stype = 0
+                                        data = "0"+data
+
+                                #Grab username and the data sent
+                                print w
+                                #w should be split into username(dst) and data
+                                if len(w) != 2 :
+                                        self.err(SVR_CH_SYNTAX_ERR)
+                                else:
+                                        #Send message over channel simulator
+                                """
+
                         #Directory/SIP/Proxy server
                         if False:
                             pass
@@ -304,6 +339,7 @@ class ClientThread(threading.Thread):
                                 sock.close();
                                 socklst.remove(sock);
                                 continue;
+
 
                             data=data.rstrip()
                             self.out(">> " + repr(self.addr) + " : "+ repr(data))
@@ -539,6 +575,8 @@ class ClientThread(threading.Thread):
             return
 
         print ">>",self.username,"::",msgwho
+        print text
+        print connectionDB
         #Check if user has a connection with msgwho
         if set([self.username, msgwho]) in connectionDB:
             #Run message via channel simulator
@@ -551,8 +589,11 @@ class ClientThread(threading.Thread):
                 #If talking to barrybot, give 'from' so it can respond
                 print msgwho
                 if msgwho == "BarryBot5":
+                    print "This is running!"
                     mangledMsg = typeid + self.username+" "+mangledMsg
+                    print mangledMsg
 
+                print "Message is going to %s"%msgwho
                 whoDB[msgwho]['socket'].send(mangledMsg);
                 self.out("MSG2("+typeid+") "+msgwho+" "+mangledMsg)
             else:
@@ -577,6 +618,8 @@ class ClientThread(threading.Thread):
         self.out("THREADS :"+str(threadsWho.keys()))
 
 #end class
+
+
 
 def printWhoDB():
     return str(whoDB.keys());
@@ -632,8 +675,59 @@ if __name__=='__main__':
             #Listen to all sockets
             ready_socks,_,_ = select.select(socklst, [], [])
             for sock in ready_socks:
-            #Grab the ip and port values of this socket (we do not know which one it is yet)
+        #Grab the ip and port values of this socket (we do not know which one it is yet)
                 iip,pport = sock.getsockname()
+
+                """
+                if pport == CHANNEL_PORT:
+                    simsock, addr = sock.accept()
+                    #simsock.setblocking(0)
+                    #Server NEEDS a connection first (also logically does)
+                    #print threadsWho.keys()
+                    simDB.append(simsock)
+
+                    if not threadsWho:
+                        simsock.send("CRITICAL ERROR: Can not establish channel link before server connection\n")
+                        simsock.close()
+                    else:
+                        connections_without_channel = []
+                        for k in threadsWho.keys():
+                            #check that server connection has the same IP address as channel connection
+                            if iip!=k.partition(':')[0]:
+                                simsock.send("CRITICAL ERROR: Can not establish channel link before server connection\n")
+                                simsock.close()
+                            #check that a channel connection hasn't already been made with the server
+
+                            elif threadsWho[k].simsock==None:
+                                connections_without_channel.append(threadsDB.index(threadsWho[k]))
+                                #associate this sim socket with the 'parent' server connection's channel connection
+                                #threadsWho[k].simsock=simsock
+
+                                #print k
+                                print 'Channel Simulator connected at address', addr
+                        '''
+                        Assign oldest simsock to the most recent connection.
+                        This should ensure that when BarryBot connects, its
+                        connection is always associated with its simsock, even
+                        if the user currently has another connection open from
+                        the same ip waiting on a simsock.
+                        '''
+                        connections_without_channel.sort(reverse=True)
+                        assert len(connections_without_channel) >= len(simDB), "Something stupid has happened"
+                        len_simDB = len(simDB)
+                        for i in range(len_simDB):
+                           index=connections_without_channel[i]
+                           threadsDB[index].simsock= simDB[i]
+                           #Now we need update whoDB
+                           for k in whoDB.keys():
+                               if whoDB[k]['socket'] == threadsDB[index].clientsock:
+                                   whoDB[k]['simsock'] = simDB[i]
+                                   whoDB[k]['simsock'].send("Channel Associated with user %s"%k)
+                        connections_without_channel = connections_without_channel[len_simDB:]
+                        simDB = []
+
+
+                """
                 #thread is only initialised for a server port connection
                 #the channel connection is a property (simsock) of a server connection thread
 
@@ -648,6 +742,21 @@ if __name__=='__main__':
                     threadsDB.append(t);
 
                     t.start();
+
+
+            '''
+
+            clientsock, addr = serversock.accept()
+            clientsimsock=None
+
+            if USE_CHAN_SIM:
+                clientsimsock, addr2 = simsock.accept()
+
+            t=ClientThread(clientsock, clientsimsock, addr)
+            t.setDaemon(True)
+            threadsWho[str(addr[0])+":"+str(addr[1])] = t;
+            threadsDB.append(t);
+            t.start();'''
 
     except KeyboardInterrupt:
         print "Catching keyboard interrupt, ending all connections"
