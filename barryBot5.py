@@ -142,48 +142,44 @@ if __name__=='__main__':
                     print "Socket connection lost - Exiting BarryBot"
                     sys.exit()
 
-                if True:
-                    print "SERVER PORT :",data
-                    fw = data.split(" ", 1)
-                    fromwho = fw[0]
+                print "SERVER PORT :",data
+                fw = data.split(" ", 1)
+                fromwho = fw[0]
 
-                    if data[:6].upper() == "INVITE":
-                        print "Accepting invite :",data
-                        sock.send("ACCEPT "+data[7:]);
-                    elif data[:3].upper() == "MSG": #Keeping MSG for debugging
-                        w=data[4:].split(' ',1)
-                        print "Msg on server port :",data
-                        msg = \
-                        re.sub("[Bb]arry([Bb]ot5?)?",
-                                w[0], w[1])
-                        sock.send("MSG "+w[0]+" I AM A ROBOT : " + msg);#+w[1] );
+                if data[:6].upper() == "INVITE":
+                    print "Accepting invite :",data
+                    sock.send("ACCEPT "+data[7:]);
+                elif data[:3].upper() == "MSG": #Keeping MSG for debugging
+                    w=data[4:].split(' ',1)
+                    print "Msg on server port :",data
+                    msg = \
+                    re.sub("[Bb]arry([Bb]ot5?)?",
+                            w[0], w[1])
+                    sock.send("MSG "+w[0]+" I AM A ROBOT : " + msg);#+w[1] );
 
 
-                    elif data[0].isdigit():
-                        data = data[1+len(fromwho):]
-                        fromwho = fromwho[1:]
-                        if "ENCRYPT" in data[:9].upper() and len(data) <=9:
-                            if random.random() < SIG_PR:        # chance of outputing the signature
-                                text = REPEAT_MSG
-                            else:
-                                #The rest of data is discarded now, grab random text
-                                text = getRandText()
-                            #Encrypt it
-                            print "Random text is :",text
-                            en = encrypt(text)
-                            print "Encrypted version is :",en
+                elif data[0].isdigit():
+                    data = data[1+len(fromwho):]
+                    fromwho = fromwho[1:]
+                    if "ENCRYPT" in data[:9].upper() and len(data) <=9:
+                        if random.random() < SIG_PR:        # chance of outputing the signature
+                            text = REPEAT_MSG
+                        else:
+                            #The rest of data is discarded now, grab random text
+                            text = getRandText()
+                        #Encrypt it
+                        print "Random text is :",text
+                        en = encrypt(text)
+                        print "Encrypted version is :",en
 
-                            #For the lab, encode into ascii-binary
-                            asciibin = str2bin(en)
-                            asciibin = padLeftZeros(asciibin[2:],8)     #make sure bin is multiple of 8bits
-                            print "ascii version is :",asciibin
-                            sock.send("0MSG "+fromwho+" "+asciibin+"\n")
+                        #For the lab, encode into ascii-binary
+                        asciibin = str2bin(en)
+                        asciibin = padLeftZeros(asciibin[2:],8)     #make sure bin is multiple of 8bits
+                        print "ascii version is :",asciibin
+                        sock.send("0MSG "+fromwho+" "+asciibin+"\n")
                         else:
                             data = "BarryBot5 (via channel): " + data
                             sock.send( "0MSG "+fromwho+" "+data+"\n")
-                    else:
-                        print "data is:"
-                        print data
 
 
                 #end if pport
