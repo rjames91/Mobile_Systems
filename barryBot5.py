@@ -1,8 +1,9 @@
-####
-# BarryBot client for COMP28512 - MobileSystems
-# Orginially written by Andrew Leeming 2014
-####
-
+#----- ----- ----- ----- ----- ----- ----- ----
+# BarryBot5 client for COMP28512 Mobile Systems
+# Originally by Andrew Leeming 2014
+# Modified by Danny Wood & Robert James 25/3/2017
+# Thanks to Igor Wodiany for his corrections
+#----- ----- ----- ----- ----- ----- ----- ----
 from socket import *
 import select
 import threading
@@ -13,82 +14,72 @@ import sys
 import random
 import binascii
 
-#####
-# Updates
-#       April/2015 : Added LAB variable to change the behaviour of barrybot (there is a slight difference between lab 4 and 5 versions, i.e. channel simulator)
-#####
-
-
-###
-# Change this to reflect if you are running barryBot for lab 4 or 5
-# STUDENT TODO: You need to do this from 2016 onwards.
-###
-LAB=5
-
-############################################################
-# YOU SHOULD NOT NEED TO CHANGE ANYTHING FROM HERE ONWARDS #
-############################################################
-
-BUFF = 4096
+BUFFSIZE = 4096
 HOST = '127.0.0.1' #Default if no ip given as arg
 SERVER_PORT = 9999 #Default if no port given as arg
-CHANNEL_PORT = 9998
 
 REPEAT_MSG="Sent by BarryBot, School of Computer Science, The University of Manchester"
-#This fixed key is only used if key isn't randomised in main function.
+#Fixed key for testing:
 KEY =      "1<AK8JNZBCHXUHCV1A?BYSE8PQW485M=XIK84MATON2NYYNU9KLWHBQO=PWPF<TE=L5SY601I1"
 KEY_LEN=len(REPEAT_MSG)
 
-SIG_PR=0.2      #This is the probability that the bot adds the signature instead of the fragment of text
+SIG_PR=0.2      #Probability of signature instead of a fragment of text
 
 TEXT_PIECE = '''The University of Manchester is a large research university situated in the city of Manchester, England. Manchester University - as it is commonly known - is a public university formed in 2004 by the merger of the University of Manchester Institute of Science and Technology (est. 1824) and the Victoria University of Manchester (est. 1851). Manchester is a member of the worldwide Universities Research Association group, the Russell Group of British research universities and the N8 Group. The University of Manchester has been a "red brick university" since 1880 when Victoria University gained its royal charter.'''
-#First paragraph from wikipedia about UoM - http://en.wikipedia.org/wiki/University_of_Manchester
+
 def genRandStr (size):
+    '''
+    Generate a random string of 8-bit ASCII chars
+    '''
     gen=""
     for i in xrange(size):
         gen=gen+chr(random.randint(48,90))
     #end for
     return gen
-#end genRandStr
+#end of genRandStr method
+#----- ----- ----- ----- ----- ----- ----- ----
 
 def sxor (s1,s2):
     '''
-    Basically an XOR but using char versions of 0 and 1
+    XOR of strings s1 & s2 using char versions of 0 and 1
     '''
     xorstr=""
-    #These strings should be '0' and '1' only
+    #Strings s1 & s2 should contain '0' and '1' chars only
     for a,b in zip(s1,s2):
         xorstr = xorstr + str(int(a)^int(b))
     #end for
-
     return xorstr
-#end sxor
+# End of sxor method
+# --- --- --- --- --- --- --- --- --- --- --- ---
 
-#http://stackoverflow.com/questions/7396849/convert-binary-to-ascii-and-vice-versa-python
 def str2bin (s):
+    # Convert string s to binary form ????? 
     return bin(int(binascii.hexlify(s), 16))
-#end str2bin
+#end of str2bin function
+# --- --- --- --- --- --- --- --- --- --- --- ---
+
 def bin2str (b):
+    # Convert binary b to string form ????
     return binascii.unhexlify('%x' % int(b, 2))
-#end bin2str
+#end of bin2str function
+# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+#stackoverflow/questions/7396849/convert-binary-to-ascii-&-vice-versa
+# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
 def encrypt (s):
     '''
-    Encrypt (XOR) a string 's' using KEY.
+    Encrypt a string 's' using random text array KEY.
     '''
     cipherstr=""
-
-    #s and KEY should be same size
+    # s and KEY should be ASCII strings of same length
     if len(s) != len(KEY):
-        print "ERROR string to encrypt not same length as key"
-
-
-    for chars in zip(s,KEY):
+        print "ERROR in encrypt: strings s & KEY not of same length"
+    for chars in zip(s,KEY):  # chars is 2 element list 
         c=chr(ord(chars[0])^ord(chars[1]))
         cipherstr = cipherstr + c
     return cipherstr
-#end encrypt
-
+#end of encrypt function
+# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
 def padLeftZeros(s, multiple):
     '''
@@ -98,12 +89,17 @@ def padLeftZeros(s, multiple):
     while len(s) % multiple != 0:
         s = '0'+s
     return s
+#end of function
 
+# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 def getRandText():
     starti = random.randint(0,len(TEXT_PIECE)-KEY_LEN)
     return TEXT_PIECE[starti:starti+KEY_LEN]
-#end getRandText
+#end of getRandText function
 
+# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+# Start of main 
+# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 if __name__=='__main__':
     if len(sys.argv) == 2:
         HOST=sys.argv[1]
@@ -121,13 +117,7 @@ if __name__=='__main__':
     errorset=False
 
     #Register barrybot
-    if LAB==4:
-        svr.send("REGISTER BarryBot4")
-    elif LAB==5:
-        svr.send("REGISTER BarryBot5")
-    else:
-        print("Error: It looks like you did not set a valid value for LAB! Valid values are 4 or 5.");
-        errorset=True
+    svr.send("REGISTER BarryBot5")
 
     try:
         while(not errorset):
@@ -135,7 +125,7 @@ if __name__=='__main__':
             for sock in ready_socks:
                 #Grab the ip and port values of this socket (we do not know which one it is yet)
                 #iip,pport = sock.getpeername()#
-                data = sock.recv(BUFF)
+                data = sock.recv(BUFFSIZE)
                 #If Socket closed
                 if not data:
                     sock.close()
@@ -165,7 +155,7 @@ if __name__=='__main__':
                         if random.random() < SIG_PR:        # chance of outputing the signature
                             text = REPEAT_MSG
                         else:
-                            #The rest of data is discarded now, grab random text
+                            #Rest of data discarded now, grab random text
                             text = getRandText()
                         #Encrypt it
                         print "Random text is :",text
@@ -174,14 +164,13 @@ if __name__=='__main__':
 
                         #For the lab, encode into ascii-binary
                         asciibin = str2bin(en)
-                        asciibin = padLeftZeros(asciibin[2:],8)     #make sure bin is multiple of 8bits
+                        asciibin = padLeftZeros(asciibin[2:],8)     
+                        #make sure bin is multiple of 8bits
                         print "ascii version is :",asciibin
                         sock.send("0MSG "+fromwho+" "+asciibin+"\n")
-                        else:
-                            data = "BarryBot5 (via channel): " + data
-                            sock.send( "0MSG "+fromwho+" "+data+"\n")
-
-
+                    else:
+                        data = "BarryBot5 (via channel): " + data
+                        sock.send( "0MSG "+fromwho+" "+data+"\n")
                 #end if pport
             #end for all sock
         #end while
@@ -189,8 +178,8 @@ if __name__=='__main__':
         print "Catching keyboard interrupt"
 
     #End of program, finish up
-
     #Close all sockets
     for sk in socklst:
         sk.close()
 #end main
+
