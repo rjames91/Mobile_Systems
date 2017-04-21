@@ -1,5 +1,7 @@
 # Server for COMP28512 - MobileSystems and COMP61242 - Mobile Comunications labs.
 # Orginially written by Andrew Leeming 2014
+# Modified by Danny Wood & Robert James 25/3/2017
+# Thanks to Igor Wodiany for his corrections
 #
 # Multiple socket code modified from
 # http://code.activestate.com/recipes/578247-basic-threaded-python-tcp-server/
@@ -297,36 +299,6 @@ class ClientThread(threading.Thread):
                         iip,pport = sock.getsockname()
 
 
-                        """
-                        #Simulated channel (introduce errors)
-                        if pport == CHANNEL_PORT:
-
-                                data = sock.recv(BUFF)
-
-                                #Socket closed
-                                if not data:
-                                        sock.close()
-                                        socklst.remove(sock)
-                                        continue
-
-                                print "CH data::",data
-                                #Grab the channel type from data
-                                try:
-                                        stype = int(data[:1])
-                                except:
-                                        self.err(SVR_INVALID_CH)
-                                        stype = 0
-                                        data = "0"+data
-
-                                #Grab username and the data sent
-                                print w
-                                #w should be split into username(dst) and data
-                                if len(w) != 2 :
-                                        self.err(SVR_CH_SYNTAX_ERR)
-                                else:
-                                        #Send message over channel simulator
-                                """
-
                         #Directory/SIP/Proxy server
                         if False:
                             pass
@@ -339,7 +311,6 @@ class ClientThread(threading.Thread):
                                 sock.close();
                                 socklst.remove(sock);
                                 continue;
-
 
                             data=data.rstrip()
                             self.out(">> " + repr(self.addr) + " : "+ repr(data))
@@ -360,6 +331,8 @@ class ClientThread(threading.Thread):
                                 self.dump();
                             elif data[:3].upper() == "MSG": #MSG command for lab4 + lab5 debug
                                 w=data[4:].split(' ',1)
+                                if w[0].upper() in ["BARRY","BAR"]:
+                                    w[0] = "BarryBot5"
                                 if len(w)==2:
                                     self.msg(w[0],w[1]);
                                 else:
@@ -375,9 +348,14 @@ class ClientThread(threading.Thread):
                             elif data == "DEBUG":
                                 self.register("Danny")
                                 self.invite("BarryBot5")
+                                time.sleep(1)
+                                self.msg2("2","BarryBot5","Hello")
+                                self.msg2("0","BarryBot5","Encrypt")
                             elif msg2_regex.match(data[:4]):
                                 channel = data[0]
                                 w=data[5:].split(' ',1)
+                                if w[0].upper() in ["BARRY","BAR"]:
+                                    w[0] = "BarryBot5"
                                 if len(w)==2:
                                     self.msg2(data[0],w[0],w[1]);
                                 else:
@@ -587,14 +565,13 @@ class ClientThread(threading.Thread):
             #Go ahead and send message
             if mangledMsg != "0"*20:    #Droped packet is a string of 20 zeros
                 #If talking to barrybot, give 'from' so it can respond
-                print msgwho
                 if msgwho == "BarryBot5":
                     print "This is running!"
                     mangledMsg = typeid + self.username+" "+mangledMsg
                     print mangledMsg
 
                 print "Message is going to %s"%msgwho
-                whoDB[msgwho]['socket'].send(mangledMsg);
+                whoDB[msgwho]['socket'].send(mangledMsg +"\n");
                 self.out("MSG2("+typeid+") "+msgwho+" "+mangledMsg)
             else:
                 #packet is dropped
