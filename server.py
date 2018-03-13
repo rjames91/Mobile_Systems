@@ -64,9 +64,9 @@ MODE5_PLP = 0.2    # Packet-loss probability
 
 
 #Here are all the error/packet loss probabilities for each channel type
-CHANNEL_1_ERR = 0.001
-CHANNEL_2_ERR = 0.01
-CHANNEL_3_ERR = 0.02
+CHANNEL_1_ERR = 0.002
+CHANNEL_2_ERR = 0.02
+#CHANNEL_3_ERR = 0.01 removed
 CHANNEL_4_ERR = 0.05
 CHANNEL_5_ERR = 0.2
 MODE3_BURSTLEN = 10   # Length (number of bits) of each burst
@@ -176,9 +176,14 @@ class ClientThread(threading.Thread):
         #assume CHANNEL_3_ERR of total transmission will contain errors
         #errors will occur in non-uniform 'bursty' locations on the data
         elif typeid == CH_BURSTY:
-            bEP = CHANNEL_3_ERR
-            n_error_bits = len(data)*bEP
-            n_bursts = int(n_error_bits/MODE3_BURSTLEN)
+            n_bursts = random.randint(0, 2)
+            if len(data)<1000:#for ascii text transmissions
+                MODE3_BURSTLEN = 15
+                BURST_BEP = 0.4
+            else:#for audio data transmissions
+                MODE3_BURSTLEN = 10000
+                BURST_BEP = 0.1
+
             print "n_bursts:{}".format(n_bursts)
 
             for _ in range(n_bursts):
@@ -186,10 +191,11 @@ class ClientThread(threading.Thread):
                 #N.B. this method allows overlap of bursts
                 data_index = random.randint(0,len(data)-(MODE3_BURSTLEN))
                 for i in range(MODE3_BURSTLEN):
-                    if data[data_index+i]=="1":
-                        newdata[data_index+i]="0"
-                    elif data[data_index+i]=="0":
-                        newdata[data_index+i]= "1"
+                    if random.random() < BURST_BEP:
+                        if data[data_index+i]=="1":
+                            newdata[data_index+i]="0"
+                        elif data[data_index+i]=="0":
+                            newdata[data_index+i]= "1"
             '''
             bEP = CHANNEL_3_ERR*random.random()
             # Set a value of bEP in range 0 to MODE3_MAX_BEP
@@ -202,8 +208,6 @@ class ClientThread(threading.Thread):
                         newdata[i]= "1"
                     else:
                         pass # Dont change other chars
-                    # end if data[i]
-                #end if random
                 Nburst = Nburst + 1
                 if Nburst == MODE3_BURSTLEN:
                     bEP = CHANNEL_3_ERR*random.random()
