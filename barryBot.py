@@ -1,5 +1,5 @@
 #----- ----- ----- ----- ----- ----- ----- ----
-# BarryBot5 client for COMP28512 Mobile Systems
+# BarryBot client for COMP28512 Mobile Systems
 # Originally by Andrew Leeming 2014
 # Modified by Danny Wood & Robert James 25/3/2017
 # Thanks to Igor Wodiany for his corrections
@@ -118,7 +118,7 @@ if __name__=='__main__':
     errorset=False
 
     #Register barrybot
-    svr.send("REGISTER BarryBot5")
+    svr.send("REGISTER BarryBot")
 
     try:
         while(not errorset):
@@ -146,7 +146,7 @@ if __name__=='__main__':
                     msg = \
                     re.sub("[Bb]arry([Bb]ot5?)?",
                             w[0], w[1])
-                    sock.send("MSG "+w[0]+" I AM A ROBOT : " + msg);#+w[1] );
+                    sock.send("MSG "+w[0]+" MY REPLY : " + msg);#+w[1] );
 
 
                 elif data[0].isdigit():
@@ -170,7 +170,7 @@ if __name__=='__main__':
                         print "ascii version is :",asciibin
                         sock.send("0MSG "+fromwho+" "+asciibin+"\n")
                     else:
-                        data = "BarryBot5 (via channel): " + data
+                        data = "BarryBot (via channel): " + data
                         sock.send( "0MSG "+fromwho+" "+data+"\n")
                 #end if pport
             #end for all sock
